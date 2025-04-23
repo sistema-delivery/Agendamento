@@ -1,10 +1,55 @@
-// pages/dashboard.tsx
+// src/pages/dashboard.tsx
+import { useEffect, useState } from 'react'
+import supabase from '../lib/supabaseClient'
+
+type Appointment = {
+  id: string
+  name: string
+  contact: string
+  service: string
+  date: string
+  timeslot: string
+  status: string
+  created_at: string
+}
+
 export default function Dashboard() {
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const { data, error } = await supabase
+        .from<Appointment>('appointments')
+        .select('*')
+        .order('date', { ascending: true })
+      if (error) console.error('Erro ao buscar agendamentos:', error)
+      else setAppointments(data!)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) return <p className="p-4">Carregando agendamentos…</p>
+
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-semibold mb-4">Dashboard do Dono</h1>
-      {/* Em breve: lista de agendamentos e ações */}
-      <p>Você precisa estar logado para ver isto.</p>
+    <div className="p-6 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Dashboard de Agendamentos</h1>
+      {appointments.length === 0 ? (
+        <p>Nenhum agendamento encontrado.</p>
+      ) : (
+        <ul className="space-y-4">
+          {appointments.map(a => (
+            <li key={a.id} className="p-4 border rounded">
+              <p><strong>Cliente:</strong> {a.name}</p>
+              <p><strong>Contato:</strong> {a.contact}</p>
+              <p><strong>Serviço:</strong> {a.service}</p>
+              <p><strong>Data:</strong> {a.date}</p>
+              <p><strong>Status:</strong> {a.status}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
