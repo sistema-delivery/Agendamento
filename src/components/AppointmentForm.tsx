@@ -1,75 +1,62 @@
-import { useState } from 'react'
+// src/pages/dashboard.tsx
+
+import { useEffect, useState } from 'react'
 import supabase from '../lib/supabaseClient'
 
-export default function AppointmentForm() {
-  const [name, setName] = useState('')
-  const [contact, setContact] = useState('')
-  const [service, setService] = useState('Corte')
-  const [date, setDate] = useState('')
-  const [message, setMessage] = useState('')
-  const [loading, setLoading] = useState(false)
+type Appointment = {
+  id: string
+  name: string
+  contact: string
+  service: string
+  date: string
+  timeslot: string
+  status: string
+  created_at: string
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    const { error } = await supabase
-      .from('appointments')
-      .insert([{ name, contact, service, date, timeslot: date }])
-    setLoading(false)
+export default function Dashboard() {
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [loading, setLoading] = useState(true)
 
-    if (error) {
-      setMessage('Erro ao agendar: ' + error.message)
-    } else {
-      setMessage('Agendamento realizado com sucesso!')
-      setName('')
-      setContact('')
-      setDate('')
+  useEffect(() => {
+    async function load() {
+      const { data, error } = await supabase
+        .from<Appointment, Appointment>('appointments')  // <-- aqui: Row e Insert
+        .select('*')
+        .order('date', { ascending: true })
+
+      if (error) {
+        console.error('Erro ao buscar agendamentos:', error)
+      } else {
+        setAppointments(data!)
+      }
+      setLoading(false)
     }
-  }
+
+    load()
+  }, [])
+
+  if (loading) return <p className="p-4">Carregando agendamentos…</p>
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto p-4 bg-white rounded shadow">
-      <h2 className="text-xl font-semibold mb-4">Agendar Corte</h2>
-      <input
-        type="text"
-        placeholder="Nome completo"
-        value={name}
-        onChange={e => setName(e.target.value)}
-        className="w-full mb-2 p-2 border rounded"
-        required
-      />
-      <input
-        type="text"
-        placeholder="Telefone ou e-mail"
-        value={contact}
-        onChange={e => setContact(e.target.value)}
-        className="w-full mb-2 p-2 border rounded"
-        required
-      />
-      <select
-        value={service}
-        onChange={e => setService(e.target.value)}
-        className="w-full mb-2 p-2 border rounded"
-      >
-        <option>Corte</option>
-        <option>Barba</option>
-        <option>Corte + Barba</option>
-      </select>
-      <input
-        type="date"
-        value={date}
-        onChange={e => setDate(e.target.value)}
-        className="w-full mb-4 p-2 border rounded"
-        required
-      />
-      <button
-        type="submit"
-        className="w-full py-2 bg-blue-600 text-white rounded"
-        disabled={loading}
-      >
-        {loading ? 'Agendando...' : 'Confirmar Agendamento'}
-      </button>
-      {message && <p className="mt-4 text-center">{message}</p>}
-    </form>
+    <div className="p-6 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Dashboard de Agendamentos</h1>
+
+      {appointments.length === 0 ? (
+        <p>Nenhum agendamento encontrado.</p>
+      ) : (
+        <ul className="space-y-4">
+          {appointments.map(a => (
+            <li key={a.id} className="p-4 border rounded">
+              <p><strong>Cliente:</strong> {a.name}</p>
+              <p><strong>Contato:</strong> {a.contact}</p>
+              <p><strong>Serviço:</strong> {a.service}</p>
+              <p><strong>Data:</strong> {a.date}</p>
+              <p><strong>Status:</strong> {a.status}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
