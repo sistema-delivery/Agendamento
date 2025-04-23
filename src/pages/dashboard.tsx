@@ -1,8 +1,10 @@
 // src/pages/dashboard.tsx
+
 import { useEffect, useState } from 'react'
 import supabase from '../lib/supabaseClient'
 
-type Appointment = {
+// Definição da interface de dados de agendamento
+export interface Appointment {
   id: string
   name: string
   contact: string
@@ -20,13 +22,18 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       const { data, error } = await supabase
-        .from<Appointment>('appointments')
+        .from<Appointment, Appointment>('appointments')  // <Row, Insert>
         .select('*')
         .order('date', { ascending: true })
-      if (error) console.error('Erro ao buscar agendamentos:', error)
-      else setAppointments(data!)
+
+      if (error) {
+        console.error('Erro ao buscar agendamentos:', error)
+      } else {
+        setAppointments(data!)
+      }
       setLoading(false)
     }
+
     load()
   }, [])
 
@@ -35,6 +42,7 @@ export default function Dashboard() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Dashboard de Agendamentos</h1>
+
       {appointments.length === 0 ? (
         <p>Nenhum agendamento encontrado.</p>
       ) : (
