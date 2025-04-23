@@ -1,18 +1,3 @@
-// 1) src/lib/supabaseClient.ts
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-)
-
-export default supabase
-
-
-// 2) src/components/AppointmentForm.tsx
 import { useState } from 'react'
 import supabase from '../lib/supabaseClient'
 
@@ -86,19 +71,5 @@ export default function AppointmentForm() {
       </button>
       {message && <p className="mt-4 text-center">{message}</p>}
     </form>
-  )
-}
-
-
-// 3) src/pages/agendar.tsx
-// Importe apenas o componente de formulário neste arquivo
-import AppointmentForm from '../components/AppointmentForm'
-
-// Este arquivo não deve conter outro default export além do Agendar
-export default function Agendar() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <AppointmentForm />
-    </div>
   )
 }
