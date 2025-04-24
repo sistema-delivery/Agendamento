@@ -1,4 +1,3 @@
-// pages/api/appointments.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import supabase from '../../lib/supabaseClient';
 
@@ -19,7 +18,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.error('Supabase GET error:', error);
           return res.status(400).json({ error: error.message, details: error.details, hint: error.hint });
         }
-        console.log('Supabase GET data count:', data.length);
         return res.status(200).json(data);
       }
 
@@ -28,7 +26,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log('Creating appointment with:', { name, contact, service, date, timeslot });
 
         if (!name || !contact || !service || !date || !timeslot) {
-          console.warn('Validation failed:', { name, contact, service, date, timeslot });
           return res.status(400).json({ error: 'Campos obrigatórios faltando.' });
         }
 
