@@ -1,5 +1,3 @@
-// pages/api/appointments.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import supabase from '../../lib/supabaseClient';
 
@@ -38,7 +36,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       case 'PUT': {
         const { id, status, service: svc, date: dt, timeslot: ts } = req.body;
-        if (!id) return res.status(400).json({ error: 'ID do agendamento é obrigatório.' });
+        if (!id) {
+          return res.status(400).json({ error: 'ID do agendamento é obrigatório.' });
+        }
 
         const updates: Record<string, any> = {};
         if (status) updates.status = status;
@@ -64,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(400).json({ error: 'ID inválido.' });
         }
 
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('appointments')
           .delete()
           .eq('id', id)
@@ -80,8 +80,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
         return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
     }
-  } catch (error: any) {
-    console.error('API /appointments error:', error.message);
+  } catch (err: any) {
+    console.error('API /appointments error:', err);
     return res.status(500).json({ error: 'Erro interno no servidor.' });
   }
 }
