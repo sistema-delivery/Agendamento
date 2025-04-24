@@ -19,14 +19,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function load() {
+      // Consultando sem genéricos para evitar erro de tipagem
       const { data, error } = await supabase
-        .from('appointments')  // removido genéricos para evitar erro de tipo
+        .from('appointments')
         .select('*')
         .order('date', { ascending: true })
 
       if (error) {
         console.error('Erro ao buscar agendamentos:', error)
       } else if (data) {
+        // Fazendo cast para Appointment[]
         setAppointments(data as Appointment[])
       }
       setLoading(false)
