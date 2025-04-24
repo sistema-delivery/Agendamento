@@ -1,25 +1,27 @@
-// middleware.ts  (na raiz do projeto, mesmo nível de package.json)
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+// src/middleware.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/auth-helpers-nextjs';
 
 export async function middleware(req: NextRequest) {
-  // cria um client Supabase capaz de ler cookies no Middleware
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res, cookies });
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { headers: req.headers } // opcional: passa headers para SSR
+  );
 
-  // obtém o usuário autenticado (via cookie de sessão)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
 
-  // se for rota /dashboard e não estiver logado, redireciona para /login
-  if (req.nextUrl.pathname.startsWith('/dashboard') && !user) {
-    const url = req.nextUrl.clone();
+  const url = req.nextUrl.clone();
+
+  if (!session && url.pathname.startsWith('/app')) {
+    // redireciona para login se não autenticado ao acessar rotas protegidas
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  return res;
+  return NextResponse.next();
 }
+
+export const config = {
+  matcher: ['/app/:path*'],
+};
