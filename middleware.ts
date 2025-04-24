@@ -1,4 +1,3 @@
-```ts
 // src/middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -35,5 +34,3 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: ['/app/:path*'],
 };
-```
-
