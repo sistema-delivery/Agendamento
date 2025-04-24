@@ -1,7 +1,7 @@
 // src/pages/login.tsx
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { supabase } from '../lib/supabaseClient';
+import supabaseClient from '../lib/supabaseClient';
 
 export default function Login() {
   const router = useRouter();
@@ -11,7 +11,7 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { user, session, error } = await supabase.auth.signIn({ email, password });
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) {
       setError(error.message);
     } else {
