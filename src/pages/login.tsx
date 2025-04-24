@@ -5,9 +5,9 @@ import supabaseClient from '../lib/supabaseClient';
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]       = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +22,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <form onSubmit={handleLogin} className="bg-white p-6 rounded shadow-md w-full max-w-sm">
-        <h1 className="text-2xl mb-4">Login de Barbeiro</h1>
+        <h1 className="text-2xl font-semibold mb-4">Login de Barbeiro</h1>
         {error && <p className="text-red-500 mb-2">{error}</p>}
         <label className="block mb-2">
           <span>Email</span>
