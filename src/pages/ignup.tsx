@@ -1,7 +1,7 @@
 // src/pages/signup.tsx
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { supabase } from '../lib/supabaseClient';
+import supabaseClient from '../lib/supabaseClient';
 
 export default function SignUp() {
   const router = useRouter();
@@ -11,11 +11,10 @@ export default function SignUp() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { user, session, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
     if (error) {
       setError(error.message);
     } else {
-      // Redirecionar para dashboard ou uma página de confirmação
       router.push('/dashboard');
     }
   };
