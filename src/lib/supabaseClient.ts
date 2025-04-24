@@ -1,13 +1,15 @@
-// src/lib/supabaseClient.ts (assegure-se de exportar supabase corretamente)
+// src/lib/supabaseClient.ts
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Criando cliente Supabase
+const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
-// Middleware de proteção para /dashboard (Next.js 13+)
-// src/middleware.ts
+// Exportando como default para evitar conflitos de declarações
+export default supabaseClient;
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { supabase } from './src/lib/supabaseClient';
