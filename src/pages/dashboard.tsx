@@ -1,5 +1,3 @@
-// src/pages/dashboard.tsx
-
 import { useEffect, useState } from 'react'
 import supabase from '../lib/supabaseClient'
 
@@ -22,14 +20,14 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       const { data, error } = await supabase
-        .from<Appointment, Appointment>('appointments')  // <Row, Insert>
+        .from('appointments')  // removido genéricos para evitar erro de tipo
         .select('*')
         .order('date', { ascending: true })
 
       if (error) {
         console.error('Erro ao buscar agendamentos:', error)
-      } else {
-        setAppointments(data!)
+      } else if (data) {
+        setAppointments(data as Appointment[])
       }
       setLoading(false)
     }
