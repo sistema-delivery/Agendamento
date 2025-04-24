@@ -1,3 +1,4 @@
+```ts
 // src/middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -8,8 +9,10 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      // para SSR, opcional: replica cookies/headers
-      headers: req.headers as any
+      global: {
+        // para SSR, replica cookies/headers (se necessário)
+        headers: req.headers as any
+      }
     }
   );
 
@@ -32,3 +35,5 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: ['/app/:path*'],
 };
+```
+
