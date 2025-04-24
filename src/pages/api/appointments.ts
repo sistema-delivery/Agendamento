@@ -9,10 +9,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     switch (req.method) {
       case 'GET': {
         const { data, error } = await supabase
-          .from('appointments')
-          .select('*')
-          .order('date', { ascending: true })
-          .order('timeslot', { ascending: true });
+  .from('appointments')
+  .insert([{
+    name,
+    contact,
+    service,
+    date,
+    timeslot,
+    status: 'pending'      // garante valor mesmo que o DEFAULT não seja aplicado
+  }])
+  .single();
 
         if (error) {
           console.error('Supabase GET error:', error);
