@@ -64,9 +64,24 @@ const LoginPage: React.FC = () => {
       return
     }
 
-    setForgotLoading(true)
-    const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(email)
-    setForgotLoading(false)
+    const handleForgot = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setForgotLoading(true)
+  setForgotError(null)
+  setForgotSuccess(false)
+
+  const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`
+  })
+
+  setForgotLoading(false)
+
+  if (resetError) {
+    setForgotError(resetError.message)
+  } else {
+    setForgotSuccess(true)
+  }
+}
 
     if (resetError) {
       // Trata rate limit específico
