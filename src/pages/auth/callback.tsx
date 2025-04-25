@@ -9,32 +9,30 @@ export default function AuthCallback() {
   const { isReady, query } = router
 
   useEffect(() => {
-    if (!isReady) return
-    const token = Array.isArray(query.token) ? query.token[0] : query.token
-    if (!token) {
-      alert('Token de confirmação ausente.')
-      return
-    }
+  if (!isReady) return
+  const token = Array.isArray(query.token) ? query.token[0] : query.token
+  if (!token) {
+    alert('Token de confirmação ausente.')
+    return
+  }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
-    // 🛠️ Aqui forçamos o 'signup' em runtime, ignorando o TS
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    supabase.auth
-      .verifyOtp({ token, type: 'signup' })
-      .then(({ error }) => {
-        if (error) {
-          console.error('Erro ao confirmar conta:', error.message)
-          alert('Não foi possível confirmar sua conta.')
-        } else {
-          router.replace('/login?approved=true')
-        }
-      })
-  }, [isReady, query.token, router])
+  // 🔧 cast para any para permitir `type: 'signup'`
+  ;(supabase.auth as any)
+    .verifyOtp({ token, type: 'signup' })
+    .then(({ error }: { error: any }) => {
+      if (error) {
+        console.error('Erro ao confirmar conta:', error.message)
+        alert('Não foi possível confirmar sua conta.')
+      } else {
+        router.replace('/login?approved=true')
+      }
+    })
+}, [isReady, query.token, router])
 
   return <p>Confirmando sua conta…</p>
 }
