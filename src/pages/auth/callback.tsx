@@ -6,10 +6,13 @@ import { createClient } from '@supabase/supabase-js'
 
 export default function AuthCallback() {
   const router = useRouter()
+  const { isReady, query } = router
 
   useEffect(() => {
-    // Captura apenas o token de confirmação enviado no link
-    const { token } = router.query as { token?: string }
+    // Só executa após o Next.js popular `router.query`
+    if (!isReady) return
+
+    const token = Array.isArray(query.token) ? query.token[0] : query.token
 
     if (!token) {
       alert('Token de confirmação ausente.')
@@ -21,7 +24,7 @@ export default function AuthCallback() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    // Verifica o OTP (token_hash) do magic link / signup
+    // Confirma o magic link / signup link usando token_hash
     supabase.auth
       .verifyOtp({ token_hash: token, type: 'email' })
       .then(({ error }) => {
@@ -29,11 +32,10 @@ export default function AuthCallback() {
           console.error('Erro ao confirmar conta:', error.message)
           alert('Não foi possível confirmar sua conta.')
         } else {
-          // Redireciona para login com sinalização de aprovação
           router.replace('/login?approved=true')
         }
       })
-  }, [router])
+  }, [isReady, query.token, router])
 
   return <p>Confirmando sua conta…</p>
 }
