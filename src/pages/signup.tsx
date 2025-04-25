@@ -41,15 +41,15 @@ const SignupPage: React.FC = () => {
     }
 
     setLoading(true)
-    const { error: authError } = await supabaseClient.auth.signUp(
-      { email, password },
-      {
-        options: {
-          data: { full_name: name },
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
-        }
+    const { error: authError } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name },
+        // utiliza a variável de ambiente definida no Vercel
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
       }
-    )
+    })
     setLoading(false)
 
     if (authError) {
