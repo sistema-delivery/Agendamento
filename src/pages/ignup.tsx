@@ -2,7 +2,6 @@
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/router'
 import supabase from '../lib/supabaseClient'
-import { toast } from 'react-hot-toast'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -15,10 +14,10 @@ export default function SignupPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (password !== confirmPassword) {
-      return toast.error('As senhas não coincidem.')
+      return alert('As senhas não coincidem.')
     }
     if (password.length < 8) {
-      return toast.error('A senha precisa ter ao menos 8 caracteres.')
+      return alert('A senha precisa ter ao menos 8 caracteres.')
     }
     setLoading(true)
     // 1) Sign up no Supabase Auth
@@ -29,10 +28,10 @@ export default function SignupPage() {
     })
     if (authError) {
       setLoading(false)
-      return toast.error(authError.message)
+      return alert('Erro ao cadastrar: ' + authError.message)
     }
     // 2) Insere/atualiza no perfil
-    await supabase
+    const { error: profileError } = await supabase
       .from('profiles')
       .upsert({
         id: authData.user!.id,
@@ -40,7 +39,10 @@ export default function SignupPage() {
         phone: '' // ou adicione outro campo no form
       })
     setLoading(false)
-    toast.success('Cadastro realizado! Verifique seu e-mail.')
+    if (profileError) {
+      return alert('Erro ao criar perfil: ' + profileError.message)
+    }
+    alert('Cadastro realizado! Verifique seu e-mail.')
     router.push('/login')
   }
 
