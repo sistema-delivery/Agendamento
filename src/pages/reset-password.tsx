@@ -11,47 +11,62 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    // Tenta extrair tokens da hash (#...) ou da query (?...)
-    const raw =
-      window.location.hash.substring(1) || window.location.search.substring(1)
-    const params = new URLSearchParams(raw)
-    const access_token = params.get('access_token')
-    const refresh_token = params.get('refresh_token')
+    // só roda após o Next.js hidratar o router
+    if (!router.isReady) return
 
-    if (!access_token || !refresh_token) {
-      setError('Parâmetros inválidos na URL.')
+    async function initSession() {
+      // primeiro, tenta ler query params (?access_token=...&refresh_token=...)
+      let access_token = typeof router.query.access_token === 'string'
+        ? router.query.access_token
+        : ''
+      let refresh_token = typeof router.query.refresh_token === 'string'
+        ? router.query.refresh_token
+        : ''
+
+      // se não vierem no query, tenta na hash (#access_token=...&refresh_token=...)
+      if (!access_token || !refresh_token) {
+        const hash = window.location.hash.substring(1)
+        const params = new URLSearchParams(hash)
+        access_token = params.get('access_token') || ''
+        refresh_token = params.get('refresh_token') || ''
+      }
+
+      if (!access_token || !refresh_token) {
+        setError('Parâmetros inválidos na URL.')
+        setLoading(false)
+        return
+      }
+
+      // seta a sessão no Supabase
+      const { error: sessionError } = await supabaseClient.auth.setSession({
+        access_token,
+        refresh_token,
+      })
+
+      if (sessionError) {
+        console.error('setSession error:', sessionError)
+        setError('Erro ao validar link. Solicite um novo reset de senha.')
+      }
+
       setLoading(false)
-      return
     }
 
-    // Seta a sessão no Supabase
-    supabaseClient.auth
-      .setSession({ access_token, refresh_token })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('setSession error:', error)
-          setError('Erro ao validar link. Solicite novo reset de senha.')
-        }
-        setLoading(false)
-      })
-  }, [])
+    initSession()
+  }, [router.isReady, router.query])
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    const { error } = await supabaseClient.auth.updateUser({
+    const { error: updateError } = await supabaseClient.auth.updateUser({
       password: newPassword,
     })
 
-    if (error) {
-      setError(error.message)
+    if (updateError) {
+      setError(updateError.message)
     } else {
       setSuccess(true)
-      // Redireciona após sucesso
-      setTimeout(() => {
-        router.push('/login')
-      }, 3000)
+      setTimeout(() => router.push('/login'), 3000)
     }
   }
 
