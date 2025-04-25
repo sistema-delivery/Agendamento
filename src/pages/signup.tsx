@@ -20,27 +20,15 @@ export default function SignupPage() {
       return alert('A senha precisa ter ao menos 8 caracteres.')
     }
     setLoading(true)
-    // 1) Sign up no Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Sign up no Supabase Auth (perfil criado automaticamente por trigger)
+    const { error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: name } }
     })
-    if (authError) {
-      setLoading(false)
-      return alert('Erro ao cadastrar: ' + authError.message)
-    }
-    // 2) Insere/atualiza no perfil
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: authData.user!.id,
-        full_name: name,
-        phone: '' // ou adicione outro campo no form
-      })
     setLoading(false)
-    if (profileError) {
-      return alert('Erro ao criar perfil: ' + profileError.message)
+    if (authError) {
+      return alert('Erro ao cadastrar: ' + authError.message)
     }
     alert('Cadastro realizado! Verifique seu e-mail.')
     router.push('/login')
@@ -100,3 +88,4 @@ export default function SignupPage() {
     </div>
   )
 }
+
