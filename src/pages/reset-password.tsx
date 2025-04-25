@@ -11,12 +11,26 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    // Extrai token da URL (hash ou query) e armazena na sessão interna do Supabase
+    // Tenta extrair tokens da hash (#...) ou da query (?...)
+    const raw =
+      window.location.hash.substring(1) || window.location.search.substring(1)
+    const params = new URLSearchParams(raw)
+    const access_token = params.get('access_token')
+    const refresh_token = params.get('refresh_token')
+
+    if (!access_token || !refresh_token) {
+      setError('Parâmetros inválidos na URL.')
+      setLoading(false)
+      return
+    }
+
+    // Seta a sessão no Supabase
     supabaseClient.auth
-      .getSessionFromUrl({ storeSession: true })
+      .setSession({ access_token, refresh_token })
       .then(({ data, error }) => {
-        if (error || !data.session) {
-          setError('Link inválido ou expirado. Solicite um novo envio de redefinição.')
+        if (error) {
+          console.error('setSession error:', error)
+          setError('Erro ao validar link. Solicite novo reset de senha.')
         }
         setLoading(false)
       })
@@ -34,7 +48,7 @@ export default function ResetPassword() {
       setError(error.message)
     } else {
       setSuccess(true)
-      // opcional: redirecionar após alguns segundos
+      // Redireciona após sucesso
       setTimeout(() => {
         router.push('/login')
       }, 3000)
@@ -44,11 +58,9 @@ export default function ResetPassword() {
   if (loading) {
     return <p className="text-center mt-10">Verificando link...</p>
   }
-
   if (error) {
     return <p className="text-center mt-10 text-red-500">{error}</p>
   }
-
   if (success) {
     return (
       <p className="text-center mt-10 text-green-600">
