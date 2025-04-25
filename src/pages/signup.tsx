@@ -41,11 +41,15 @@ const SignupPage: React.FC = () => {
     }
 
     setLoading(true)
-    const { error: authError } = await supabaseClient.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name } }
-    })
+    const { error: authError } = await supabaseClient.auth.signUp(
+      { email, password },
+      {
+        options: {
+          data: { full_name: name },
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
+        }
+      }
+    )
     setLoading(false)
 
     if (authError) {
