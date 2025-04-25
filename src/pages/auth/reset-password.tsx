@@ -5,66 +5,69 @@ import supabase from '../../lib/supabaseClient'
 
 export default function ResetPassword() {
   const router = useRouter()
-  const [token, setToken] = useState<string>()
-  const [newPass, setNewPass] = useState('')
-  const [error, setError] = useState<string>()
+  const [token, setToken] = useState<string | null>(null)
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
-  // 1) Pegar o token do hash da URL (ex: #type=recovery&token=xxx)
+  // 1) Pega o token do hash (#type=recovery&token=xxx)
   useEffect(() => {
     if (typeof window === 'undefined') return
     const hash = window.location.hash.substring(1)
     const params = new URLSearchParams(hash)
     const t = params.get('token')
     if (!t) {
-      setError('Token não encontrado na URL.')
+      setError('Link de recuperação inválido.')
       return
     }
     setToken(t)
   }, [])
 
-  // 2) Quando o form for submetido, validar o OTP e atualizar a senha
-  const handleSubmit = async (e) => {
+  // 2) Submete o form
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!token) return
 
-    // verifica o OTP de recuperação e já seta a sessão
+    // verifica o OTP e autentica
     const { error: otpErr } = await supabase.auth.verifyOtp({
       type: 'recovery',
       token_hash: token,
     })
     if (otpErr) {
-      setError(`Erro ao validar o link: ${otpErr.message}`)
+      setError('Erro ao validar link: ' + otpErr.message)
       return
     }
 
-    // agora, com a sessão ativa, atualiza a senha
+    // atualiza a senha
     const { error: updErr } = await supabase.auth.updateUser({
-      password: newPass,
+      password,
     })
     if (updErr) {
-      setError(`Não foi possível atualizar: ${updErr.message}`)
+      setError('Não foi possível atualizar: ' + updErr.message)
       return
     }
 
-    // tudo certo! manda pra tela de login
+    // sucesso! manda pro login
     router.replace('/login?reset=success')
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto', textAlign: 'center' }}>
-      <h1>Redefinir senha</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <div className="max-w-md mx-auto mt-16">
+      <h1 className="text-2xl mb-4">Redefinir senha</h1>
+      {error && <p className="text-red-500 mb-2">{error}</p>}
       {token && (
         <form onSubmit={handleSubmit}>
           <input
             type="password"
             placeholder="Nova senha"
-            value={newPass}
-            onChange={(e) => setNewPass(e.target.value)}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
-            style={{ width: '100%', padding: '0.5rem', margin: '1rem 0' }}
+            className="w-full mb-4 p-2 border rounded"
           />
-          <button type="submit" style={{ padding: '0.5rem 1rem' }}>
+          <button
+            type="submit"
+            className="w-full bg-green-600 text-white py-2 rounded"
+          >
             Atualizar senha
           </button>
         </form>
