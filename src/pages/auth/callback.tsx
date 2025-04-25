@@ -9,14 +9,15 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     if (!router.isReady) return
 
-    const { type, error, error_description } = router.query as Record<string, string>
+    // Verifica se há erro nos parâmetros de query
+    const { error, error_description } = router.query as Record<string, string>
 
+    // Se houver algum erro, falha na confirmação
     if (error || error_description) {
       setStatus('error')
-    } else if (type === 'signup') {
-      setStatus('success')
     } else {
-      setStatus('error')
+      // Sem erros: confirmação concluída com sucesso
+      setStatus('success')
     }
   }, [router.isReady, router.query])
 
@@ -38,7 +39,7 @@ const AuthCallback: React.FC = () => {
     )
   }
 
-  // sucesso
+  // Sucesso: email confirmado
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
       <h1 className="text-xl font-semibold mb-4">E-mail confirmado com sucesso!</h1>
