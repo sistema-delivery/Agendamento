@@ -8,29 +8,30 @@ export default function AuthCallback() {
   const router = useRouter()
 
   useEffect(() => {
+    // Captura apenas o token de confirmação enviado no link
+    const { token } = router.query as { token?: string }
+
+    if (!token) {
+      alert('Token de confirmação ausente.')
+      return
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
+    // Verifica o OTP (token_hash) do magic link / signup
     supabase.auth
-      .getSessionFromUrl({ storeSession: true })
-      .then(async ({ data, error }) => {
+      .verifyOtp({ token_hash: token, type: 'email' })
+      .then(({ error }) => {
         if (error) {
-          console.error('Erro na confirmação de e-mail:', error.message)
+          console.error('Erro ao confirmar conta:', error.message)
           alert('Não foi possível confirmar sua conta.')
-          return
+        } else {
+          // Redireciona para login com sinalização de aprovação
+          router.replace('/login?approved=true')
         }
-
-        // Se quiser garantir que o perfil exista:
-        if (data.session?.user) {
-          const { user } = data.session
-          await supabase
-            .from('profiles')
-            .upsert({ id: user.id, full_name: user.user_metadata.full_name, phone: '' })
-        }
-
-        router.replace('/login?approved=true')
       })
   }, [router])
 
