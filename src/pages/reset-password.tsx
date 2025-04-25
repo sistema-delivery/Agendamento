@@ -1,19 +1,15 @@
 // src/pages/reset-password.tsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import { createClient } from '@supabase/supabase-js'
+import supabaseClient from '../lib/supabaseClient'
 
 export default function ResetPassword() {
-  const router = useRouter()
-  const [password, setPassword] = useState('')
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [refreshToken, setRefreshToken] = useState<string | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [sessionReady, setSessionReady] = useState(false)
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   useEffect(() => {
     const hash = window.location.hash.substring(1)
@@ -21,61 +17,57 @@ export default function ResetPassword() {
     const access_token = params.get('access_token')
     const refresh_token = params.get('refresh_token')
 
-    if (access_token && refresh_token) {
-      supabase.auth
-        .setSession({ access_token, refresh_token })
-        .then(({ error }) => {
-          if (error) {
-            setError('Erro ao validar sessão.')
-          } else {
-            setSessionReady(true)
-          }
-        })
-    } else {
+    if (!access_token || !refresh_token) {
       setError('Parâmetros inválidos na URL.')
+      setLoading(false)
+      return
     }
+
+    supabaseClient.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
+      if (error) {
+        setError('Erro ao autenticar. Link inválido ou expirado.')
+      } else {
+        setAccessToken(access_token)
+        setRefreshToken(refresh_token)
+      }
+      setLoading(false)
+    })
   }, [])
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    const { error } = await supabase.auth.updateUser({ password })
-
+    const { error } = await supabaseClient.auth.updateUser({ password: newPassword })
     if (error) {
       setError(error.message)
     } else {
       setSuccess(true)
-      setTimeout(() => router.push('/login'), 2000)
     }
   }
+
+  if (loading) return <p className="text-center mt-10">Verificando link...</p>
+  if (error) return <p className="text-center mt-10 text-red-500">{error}</p>
+  if (success) return <p className="text-center mt-10 text-green-600">Senha atualizada com sucesso!</p>
 
   return (
     <div className="min-h-screen flex items-center justify-center">
       <form onSubmit={handleReset} className="bg-white p-6 rounded shadow-md w-full max-w-sm">
-        <h1 className="text-2xl font-semibold mb-4">Redefinir Senha</h1>
-        {error && <p className="text-red-500 mb-2">{error}</p>}
-        {!sessionReady && !error && <p>Carregando sessão…</p>}
-        {sessionReady && !success && (
-          <>
-            <label className="block mb-4">
-              <span>Nova Senha</span>
-              <input
-                type="password"
-                className="mt-1 block w-full border rounded p-2"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </label>
-            <button
-              type="submit"
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded"
-            >
-              Redefinir Senha
-            </button>
-          </>
-        )}
-        {success && <p className="text-green-600">Senha redefinida com sucesso!</p>}
+        <h1 className="text-xl font-semibold mb-4">Redefinir Senha</h1>
+        <label className="block mb-4">
+          <span>Nova Senha</span>
+          <input
+            type="password"
+            className="mt-1 block w-full border rounded p-2"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+          />
+        </label>
+        <button
+          type="submit"
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded"
+        >
+          Redefinir Senha
+        </button>
       </form>
     </div>
   )
