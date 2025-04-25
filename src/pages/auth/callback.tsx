@@ -9,19 +9,19 @@ export default function AuthCallback() {
   const [message, setMessage] = useState<string>('')
 
   useEffect(() => {
+    if (!router.isReady) return
+    const { token } = router.query as { token?: string }
+
     const confirmEmail = async () => {
-      // Extrai o token de confirmação da URL (configurado no template do Supabase)
-      const token = router.query.token as string | undefined
       if (!token) {
         setStatus('error')
         setMessage('Parâmetro de confirmação ausente.')
         return
       }
 
-            // Chama o endpoint de confirmação de e-mail via token hash
       const { error } = await supabase.auth.verifyOtp({
-        type: 'signup',        // fluxo de confirmação de e-mail via sign-up
-        token_hash: token      // token recebido no link
+        type: 'signup',
+        token_hash: token,
       })
 
       if (error) {
@@ -34,53 +34,16 @@ export default function AuthCallback() {
       }
     }
 
-    if (router.isReady) confirmEmail()
+    confirmEmail()
   }, [router.isReady, router.query.token])
 
-  // Renderização condicional
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       {status === 'loading' && <p className="text-gray-700">Confirmando e-mail...</p>}
 
       {status === 'error' && (
         <>
-          <p className="text-red-600 mb-4">{message || 'Não foi possível confirmar o e-mail.'}</p>
-          <button
-            onClick={() => router.push('/')}
-            className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
-          >
-            Voltar ao início
-          </button>
-        </>
-      )}
-
-      {status === 'success' && (
-        <>
-          <p className="text-green-600 mb-4">{message}</p>
-          <button
-            onClick={() => router.push('/login')}
-            className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
-          >
-            Ir para login
-          </button>
-        </>
-      )}
-    </div>
-  )
-}
-    }
-
-    if (router.isReady) confirmEmail()
-  }, [router.isReady, router.query.token])
-
-  // Renderização condicional
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      {status === 'loading' && <p className="text-gray-700">Confirmando e-mail...</p>}
-
-      {status === 'error' && (
-        <>
-          <p className="text-red-600 mb-4">{message || 'Não foi possível confirmar o e-mail.'}</p>
+          <p className="text-red-600 mb-4">{message}</p>
           <button
             onClick={() => router.push('/')}
             className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
