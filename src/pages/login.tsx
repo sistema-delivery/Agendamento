@@ -15,10 +15,12 @@ const LoginPage: React.FC = () => {
 
   // Redireciona quem já estiver autenticado
   useEffect(() => {
-    supabaseClient.auth.getSession().then(({ data }) => {
-      if (data.session) router.replace('/dashboard')
-    })
-  }, [router])
+  const { approved } = router.query
+
+  if (approved === 'true') {
+    setFeedback('Conta confirmada com sucesso! Agora é só fazer login.')
+  }
+}, [router.query])
 
   // Countdown do cooldown
   useEffect(() => {
