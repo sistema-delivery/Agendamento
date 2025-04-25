@@ -7,21 +7,16 @@ export default function AuthCallback() {
   const router = useRouter()
 
   useEffect(() => {
-    // 1) Parseia token da hash
-    const hash = window.location.hash.substring(1)
-    const params = new URLSearchParams(hash)
-    const access_token = params.get('access_token')
-    const refresh_token = params.get('refresh_token')
+    const access_token = router.query.access_token as string
+    const refresh_token = router.query.refresh_token as string
 
     if (access_token && refresh_token) {
-      // 2) Cria um client temporário com o token
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         { global: { headers: { Authorization: `Bearer ${access_token}` } } }
       )
 
-      // 3) Estabelece a sessão
       supabase.auth.setSession({ access_token, refresh_token }).then(async ({ error }) => {
         if (error) {
           console.error('Erro ao processar sessão:', error.message)
@@ -29,7 +24,6 @@ export default function AuthCallback() {
           return
         }
 
-        // 4) Agora que temos usuário autenticado, faz o upsert no profiles
         const {
           data: { user }
         } = await supabase.auth.getUser()
@@ -43,7 +37,6 @@ export default function AuthCallback() {
           alert('Houve um problema criando seu perfil.')
         }
 
-        // 5) Redireciona ao dashboard
         router.replace('/dashboard')
       })
     } else {
