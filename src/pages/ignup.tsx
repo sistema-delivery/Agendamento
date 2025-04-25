@@ -1,56 +1,59 @@
 // src/pages/signup.tsx
-import { useState } from 'react';
-import { useRouter } from 'next/router';
-import supabaseClient from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { useRouter } from 'next/router'
+import { toast } from 'react-hot-toast'
 
-export default function SignUp() {
-  const router = useRouter();
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError]       = useState<string | null>(null);
+const schema = z.object({
+  name: z.string().min(2, 'Informe seu nome completo'),
+  email: z.string().email('E-mail inválido'),
+  password: z.string().min(8, 'Mínimo de 8 caracteres'),
+  confirmPassword: z.string()
+})
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push('/dashboard');
+export default function SignupPage() {
+  const router = useRouter()
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
+    resolver: zodResolver(schema),
+  })
+
+  async function onSubmit(data) {
+    if (data.password !== data.confirmPassword) {
+      return toast.error('As senhas não coincidem.')
     }
-  };
+
+    // 1) Sign up no Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: { full_name: data.name }
+      }
+    })
+
+    if (authError) {
+      toast.error(authError.message)
+      return
+    }
+
+    // 2) Insere/atualiza no perfil
+    await supabase
+      .from('profiles')
+      .upsert({
+       id: authData.user!.id,
+        full_name: data.name,
+        phone: '' // opcional, ou adicione campo no form
+     })
+
+    toast.success('Cadastro realizado! Verifique seu e-mail.')
+    router.push('/login')
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <form onSubmit={handleSignUp} className="bg-white p-6 rounded shadow-md w-full max-w-sm">
-        <h1 className="text-2xl font-semibold mb-4">Cadastro de Barbeiro</h1>
-        {error && <p className="text-red-500 mb-2">{error}</p>}
-        <label className="block mb-2">
-          <span>Email</span>
-          <input
-            type="email"
-            className="mt-1 block w-full border rounded p-2"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label className="block mb-4">
-          <span>Senha</span>
-          <input
-            type="password"
-            className="mt-1 block w-full border rounded p-2"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
-        >
-          Cadastrar
-        </button>
-      </form>
-    </div>
-  );
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {/* ...seu markup de inputs para name, email, senha, confirmPassword */}
+    </form>
+  )
 }
