@@ -1,34 +1,41 @@
-// src/pages/auth/callback.tsx
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import supabase from '../../lib/supabaseClient'
 
 export default function AuthCallback() {
   const router = useRouter()
+  const [status, setStatus] = useState<'loading'|'success'|'error'>('loading')
 
   useEffect(() => {
     if (!router.isReady) return
 
-    // pega o código de autorização da URL (?code=...)
-    const code = router.query.code as string | undefined
-    if (!code) {
-      console.error('Código de autorização ausente na URL')
-      alert('Não foi possível confirmar o e-mail.')
+    // Supabase devolve ?type=signup ou ?error=<msg>
+    const { type, error } = router.query as Record<string,string>
+
+    if (error) {
+      setStatus('error')
       return
     }
+    if (type === 'signup') {
+      setStatus('success')
+      return
+    }
+    // fallback
+    setStatus('error')
+  }, [router.isReady, router.query])
 
-    supabase.auth
-      .exchangeCodeForSession(code)   // <— agora recebe o code
-      .then(({ data: { session }, error }) => {
-        if (error || !session) {
-          console.error('Erro ao trocar código por sessão:', error?.message)
-          alert('Falha ao confirmar e-mail.')
-          return
-        }
-        // sucesso: redireciona para o dashboard
-        router.replace('/dashboard')
-      })
-  }, [router.isReady, router.query.code])
+  if (status === 'loading') return <p>Processando confirmação…</p>
+  if (status === 'error')
+    return (
+      <div>
+        <h1>Não foi possível confirmar o e-mail.</h1>
+        <button onClick={() => router.push('/')}>Voltar</button>
+      </div>
+    )
 
-  return <p>Confirmando sua conta…</p>
+  return (
+    <div>
+      <h1>E-mail confirmado com sucesso!</h1>
+      <button onClick={() => router.push('/login')}>Ir para login</button>
+    </div>
+  )
 }
