@@ -5,7 +5,10 @@ import supabaseClient from '../lib/supabaseClient'
 
 const SignupPage: React.FC = () => {
   const router = useRouter()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
@@ -23,11 +26,23 @@ const SignupPage: React.FC = () => {
 
     setError(null)
     setFeedback(null)
+
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem.')
+      return
+    }
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
+
     setLoading(true)
 
-    const { error: authError } = await supabaseClient.auth.signInWithOtp({
+    const { error: authError } = await supabaseClient.auth.signUp({
       email,
+      password,
       options: {
+        data: { full_name: name },
         emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
       }
     })
@@ -40,19 +55,32 @@ const SignupPage: React.FC = () => {
         setError('Muitas tentativas. Aguarde 60s para tentar novamente.')
         setCooldown(60)
       } else {
-        setError(`Erro ao enviar link de confirmação: ${authError.message}`)
+        setError(`Erro ao cadastrar: ${authError.message}`)
       }
     } else {
-      setFeedback('Verifique seu e-mail! Enviamos um link para entrar.')
+      setFeedback('Cadastro realizado! Verifique seu e-mail para confirmar.')
     }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <form onSubmit={onSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-4">Entrar por E-mail</h1>
+        <h1 className="text-2xl font-bold mb-4">Criar Conta</h1>
+
         {error && <p className="text-red-500 mb-2">{error}</p>}
         {feedback && <p className="text-green-600 mb-2">{feedback}</p>}
+
+        <label className="block mb-4">
+          <span>Nome completo</span>
+          <input
+            type="text"
+            required
+            className="mt-1 block w-full border rounded p-2"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+        </label>
+
         <label className="block mb-4">
           <span>E-mail</span>
           <input
@@ -63,6 +91,29 @@ const SignupPage: React.FC = () => {
             onChange={e => setEmail(e.target.value)}
           />
         </label>
+
+        <label className="block mb-4">
+          <span>Senha</span>
+          <input
+            type="password"
+            required
+            className="mt-1 block w-full border rounded p-2"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+          />
+        </label>
+
+        <label className="block mb-6">
+          <span>Confirmar senha</span>
+          <input
+            type="password"
+            required
+            className="mt-1 block w-full border rounded p-2"
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+          />
+        </label>
+
         <button
           type="submit"
           disabled={loading || cooldown > 0}
@@ -70,7 +121,7 @@ const SignupPage: React.FC = () => {
             loading || cooldown > 0 ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
-          {loading ? 'Enviando…' : cooldown > 0 ? `Aguarde ${cooldown}s` : 'Enviar link de acesso'}
+          {loading ? 'Criando conta…' : cooldown > 0 ? `Aguarde ${cooldown}s` : 'Criar conta'}
         </button>
       </form>
     </div>
