@@ -5,51 +5,55 @@ import supabaseClient from '../lib/supabaseClient'
 
 export default function ResetPassword() {
   const router = useRouter()
-  const [step, setStep] = useState<'loading'|'form'|'done'|'error'>('loading')
-  const [error, setError] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
-  useEffect(() => {
-    supabaseClient.auth
-      .getSessionFromUrl({ storeSession: true })
-      .then(({ error }) => {
-        if (error) {
-          setError('Link inválido ou expirado.')
-          setStep('error')
-        } else {
-          setStep('form')
-        }
-      })
-  }, [])
-
-  const handleSubmit = async (e) => {
+  const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
-    const { error: upErr } = await supabaseClient.auth.updateUser({ password })
-    if (upErr) {
-      setError(upErr.message)
+
+    const { data, error } = await supabaseClient.auth.updateUser({
+      password: password
+    })
+
+    if (error) {
+      setError(error.message)
     } else {
-      setStep('done')
-      setTimeout(() => router.replace('/login'), 2000)
+      setSuccess(true)
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
     }
   }
 
-  if (step === 'loading') return <p>Validando link…</p>
-  if (step === 'error')   return <p className="text-red-500">{error}</p>
-  if (step === 'done')    return <p className="text-green-600">Senha alterada! Redirecionando…</p>
-
   return (
-    <form onSubmit={handleSubmit}>
-      <label>
-        Nova senha
-        <input
-          type="password"
-          required
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        />
-      </label>
-      <button type="submit">Atualizar senha</button>
-      {error && <p className="text-red-500">{error}</p>}
-    </form>
+    <div className="min-h-screen flex items-center justify-center">
+      <form onSubmit={handleReset} className="bg-white p-6 rounded shadow-md w-full max-w-sm">
+        <h1 className="text-2xl font-semibold mb-4">Redefinir Senha</h1>
+        {error && <p className="text-red-500 mb-2">{error}</p>}
+        {success ? (
+          <p className="text-green-600">Senha redefinida com sucesso! Redirecionando...</p>
+        ) : (
+          <>
+            <label className="block mb-4">
+              <span>Nova Senha</span>
+              <input
+                type="password"
+                className="mt-1 block w-full border rounded p-2"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </label>
+            <button
+              type="submit"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded"
+            >
+              Redefinir Senha
+            </button>
+          </>
+        )}
+      </form>
+    </div>
   )
 }
