@@ -4,53 +4,65 @@ import { useRouter } from 'next/router'
 import supabaseClient from '../lib/supabaseClient'
 
 export default function ResetPassword() {
-  const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [refreshToken, setRefreshToken] = useState<string | null>(null)
+  const router = useRouter()
   const [newPassword, setNewPassword] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    const hash = window.location.hash.substring(1)
-    const params = new URLSearchParams(hash)
-    const access_token = params.get('access_token')
-    const refresh_token = params.get('refresh_token')
-
-    if (!access_token || !refresh_token) {
-      setError('Parâmetros inválidos na URL.')
-      setLoading(false)
-      return
-    }
-
-    supabaseClient.auth.setSession({ access_token, refresh_token }).then(({ error }) => {
-      if (error) {
-        setError('Erro ao autenticar. Link inválido ou expirado.')
-      } else {
-        setAccessToken(access_token)
-        setRefreshToken(refresh_token)
-      }
-      setLoading(false)
-    })
+    // Extrai token da URL (hash ou query) e armazena na sessão interna do Supabase
+    supabaseClient.auth
+      .getSessionFromUrl({ storeSession: true })
+      .then(({ data, error }) => {
+        if (error || !data.session) {
+          setError('Link inválido ou expirado. Solicite um novo envio de redefinição.')
+        }
+        setLoading(false)
+      })
   }, [])
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
-    const { error } = await supabaseClient.auth.updateUser({ password: newPassword })
+    setError(null)
+
+    const { error } = await supabaseClient.auth.updateUser({
+      password: newPassword,
+    })
+
     if (error) {
       setError(error.message)
     } else {
       setSuccess(true)
+      // opcional: redirecionar após alguns segundos
+      setTimeout(() => {
+        router.push('/login')
+      }, 3000)
     }
   }
 
-  if (loading) return <p className="text-center mt-10">Verificando link...</p>
-  if (error) return <p className="text-center mt-10 text-red-500">{error}</p>
-  if (success) return <p className="text-center mt-10 text-green-600">Senha atualizada com sucesso!</p>
+  if (loading) {
+    return <p className="text-center mt-10">Verificando link...</p>
+  }
+
+  if (error) {
+    return <p className="text-center mt-10 text-red-500">{error}</p>
+  }
+
+  if (success) {
+    return (
+      <p className="text-center mt-10 text-green-600">
+        Senha atualizada com sucesso! Redirecionando para login...
+      </p>
+    )
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <form onSubmit={handleReset} className="bg-white p-6 rounded shadow-md w-full max-w-sm">
+      <form
+        onSubmit={handleReset}
+        className="bg-white p-6 rounded shadow-md w-full max-w-sm"
+      >
         <h1 className="text-xl font-semibold mb-4">Redefinir Senha</h1>
         <label className="block mb-4">
           <span>Nova Senha</span>
@@ -60,6 +72,7 @@ export default function ResetPassword() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
+            minLength={6}
           />
         </label>
         <button
