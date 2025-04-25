@@ -12,7 +12,7 @@ const SignupPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
-  const [cooldown, setCooldown] = useState<number>(0)  // segundos restantes
+  const [cooldown, setCooldown] = useState<number>(0) // segundos restantes
 
   // Contador de cooldown
   useEffect(() => {
@@ -57,9 +57,8 @@ const SignupPage: React.FC = () => {
         setError(`Erro ao cadastrar: ${authError.message}`)
       }
     } else {
-      setFeedback('Cadastro realizado! Verifique seu e-mail.')
-      setCooldown(60)
-      // Redireciona após feedback
+      // Cadastro OK: apenas mostra feedback e redireciona
+      setFeedback('Cadastro realizado com sucesso! Verifique seu e-mail para confirmar.')
       setTimeout(() => router.push('/login'), 2000)
     }
   }
