@@ -69,7 +69,7 @@ const LoginPage: React.FC = () => {
     setForgotLoading(true)
   const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(
     email,
-    { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password` }
+    { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password` }
   )
   setForgotLoading(false)
 
