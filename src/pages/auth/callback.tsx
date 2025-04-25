@@ -1,69 +1,51 @@
 // src/pages/auth/callback.tsx
-import { useEffect, useState } from 'react'
+
+import { useEffect } from 'react'
 import { useRouter } from 'next/router'
-import supabase from '../../lib/supabaseClient'
+import { createClient } from '@supabase/supabase-js'
 
 export default function AuthCallback() {
   const router = useRouter()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [message, setMessage] = useState<string>('')
 
   useEffect(() => {
-    if (!router.isReady) return
-    const { token } = router.query as { token?: string }
+    const access_token = router.query.access_token as string
+    const refresh_token = router.query.refresh_token as string
 
-    const confirmEmail = async () => {
-      if (!token) {
-        setStatus('error')
-        setMessage('Parâmetro de confirmação ausente.')
-        return
-      }
+    if (access_token && refresh_token) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { global: { headers: { Authorization: `Bearer ${access_token}` } } }
+      )
 
-      const { error } = await supabase.auth.verifyOtp({
-        type: 'signup',
-        token_hash: token,
+      supabase.auth.setSession({ access_token, refresh_token }).then(async ({ error }) => {
+        if (error) {
+          console.error('Erro ao processar sessão:', error.message)
+          alert('Erro na confirmação de e-mail.')
+          return
+        }
+
+        const {
+          data: { user }
+        } = await supabase.auth.getUser()
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({ id: user!.id, full_name: user!.user_metadata.full_name, phone: '' })
+
+        if (profileError) {
+          console.error('Erro ao criar perfil:', profileError.message)
+          alert('Houve um problema criando seu perfil.')
+        }
+
+        // Redireciona para login com sinalização de aprovação
+        router.replace('/login?approved=true')
       })
-
-      if (error) {
-        console.error('Erro ao confirmar e-mail:', error.message)
-        setStatus('error')
-        setMessage('Falha ao confirmar o e-mail. Tente novamente mais tarde.')
-      } else {
-        setStatus('success')
-        setMessage('E-mail confirmado com sucesso! Você pode fazer login agora.')
-      }
+    } else {
+      alert('Parâmetros de autenticação ausentes.')
     }
+  }, [router])
 
-    confirmEmail()
-  }, [router.isReady, router.query.token])
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      {status === 'loading' && <p className="text-gray-700">Confirmando e-mail...</p>}
-
-      {status === 'error' && (
-        <>
-          <p className="text-red-600 mb-4">{message}</p>
-          <button
-            onClick={() => router.push('/')}
-            className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
-          >
-            Voltar ao início
-          </button>
-        </>
-      )}
-
-      {status === 'success' && (
-        <>
-          <p className="text-green-600 mb-4">{message}</p>
-          <button
-            onClick={() => router.push('/login')}
-            className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
-          >
-            Ir para login
-          </button>
-        </>
-      )}
-    </div>
-  )
+  return <p>Conta confirmada! Redirecionando para login…</p>
 }
+
