@@ -1,97 +1,142 @@
 // src/pages/login.tsx
 
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import supabaseClient from '../lib/supabaseClient'  // ajustado para o diretório correto e default export
+import supabaseClient from '../lib/supabaseClient'
 
-export default function Login() {
+const LoginPage: React.FC = () => {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [feedback, setFeedback] = useState<string | null>(null)
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0) // segundos restantes
+
+  // Mensagem após confirmação de conta
+  useEffect(() => {
+    const { approved } = router.query
+    if (approved === 'true') {
+      setFeedback('Conta confirmada com sucesso! Agora é só fazer login.')
+    }
+  }, [router.query])
+
+  // Countdown do cooldown de reenvio de senha
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setInterval(() => {
+      setCooldown((prev) => Math.max(prev - 1, 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldown])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
+    setError(null)
+    setFeedback(null)
     setLoading(true)
-    setMessage(null)
 
-    const { error } = await supabaseClient.auth.signInWithPassword({
+    const { error: authError } = await supabaseClient.auth.signInWithPassword({
       email,
       password,
     })
 
     setLoading(false)
 
-    if (error) {
-      setMessage(error.message)
+    if (authError) {
+      const msg = authError.message.includes('Invalid login credentials')
+        ? 'E-mail ou senha incorretos.'
+        : authError.message
+      setError(msg)
     } else {
-      router.push('/')  // rota após login bem-sucedido
+      router.push('/dashboard')
     }
   }
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleForgotPassword = async (e: React.MouseEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setMessage(null)
+    if (forgotLoading || cooldown > 0) return
+    setError(null)
+    setFeedback(null)
 
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(
+    if (!email) {
+      setError('Por favor, informe seu e-mail para recuperar a senha.')
+      return
+    }
+
+    setForgotLoading(true)
+    const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(
       email,
       {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`
+        // REDIRECT ORIGINAL: para /reset-password
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`
       }
     )
+    setForgotLoading(false)
 
-    setLoading(false)
-
-    if (error) {
-      setMessage(error.message)
+    if (resetError) {
+      if (resetError.message.toLowerCase().includes('rate limit')) {
+        setError(
+          'Você solicitou muitas vezes o reset de senha.\nAguarde 60 seg e tente novamente.'
+        )
+        setCooldown(60)
+      } else {
+        setError(`Erro ao enviar e-mail de recuperação: ${resetError.message}`)
+      }
     } else {
-      setMessage('Se um usuário com este e-mail existir, você receberá instruções para redefinição de senha.')
+      setFeedback('Se o e-mail estiver cadastrado, você receberá instruções em breve.')
+      setCooldown(60)
     }
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '0 auto', padding: 20 }}>
-      <h1>Login</h1>
+    <div className="login-container">
+      <h1>Login de Barbeiro</h1>
 
-      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {error && <div className="error">{error}</div>}
+      {feedback && <div className="feedback">{feedback}</div>}
+
+      <form onSubmit={handleLogin}>
         <input
           type="email"
-          placeholder="E-mail"
+          placeholder="Email"
           value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
+          onChange={(e) => setEmail(e.target.value)}
         />
         <input
           type="password"
           placeholder="Senha"
           value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
+          onChange={(e) => setPassword(e.target.value)}
         />
         <button type="submit" disabled={loading}>
-          {loading ? 'Carregando...' : 'Entrar'}
+          {loading ? 'Entrando...' : 'Entrar'}
         </button>
       </form>
 
-      <hr style={{ margin: '20px 0' }} />
+      <button
+        onClick={handleForgotPassword}
+        disabled={forgotLoading || cooldown > 0}
+        className={`underline ${
+          forgotLoading || cooldown > 0
+            ? 'text-gray-400 cursor-not-allowed'
+            : 'text-blue-600'
+        }`}
+      >
+        {forgotLoading
+          ? 'Enviando...'
+          : cooldown > 0
+          ? `Reenviar em ${cooldown}s`
+          : 'Esqueci minha senha'}
+      </button>
 
-      <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h2>Esqueci minha senha</h2>
-        <input
-          type="email"
-          placeholder="Digite seu e-mail para reset"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Enviando...' : 'Enviar link de redefinição'}
-        </button>
-      </form>
-
-      {message && <p style={{ marginTop: 20 }}>{message}</p>}
+      <p>
+        Não tem conta? <a href="/signup">Cadastre-se</a>
+      </p>
     </div>
   )
 }
+
+export default LoginPage
