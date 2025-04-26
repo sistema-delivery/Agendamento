@@ -1,179 +1,98 @@
 // src/pages/login.tsx
-import React, { useState, useEffect } from 'react'
+
+import { useState } from 'react'
 import { useRouter } from 'next/router'
-import supabaseClient from '../lib/supabaseClient'
+import { supabaseClient } from '../utils/supabaseClient'
 
-const LoginPage: React.FC = () => {
+export default function Login() {
   const router = useRouter()
-  const [email, setEmail] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
-  const [forgotLoading, setForgotLoading] = useState<boolean>(false)
-  const [cooldown, setCooldown] = useState<number>(0) // segundos restantes
-
-  // Redireciona quem já estiver autenticado
-  useEffect(() => {
-  const { approved } = router.query
-
-  if (approved === 'true') {
-    setFeedback('Conta confirmada com sucesso! Agora é só fazer login.')
-  }
-}, [router.query])
-
-  // Countdown do cooldown
-  useEffect(() => {
-    if (cooldown <= 0) return
-    const timer = setInterval(() => {
-      setCooldown((prev) => Math.max(prev - 1, 0))
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [cooldown])
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (loading) return
-    setError(null)
-    setFeedback(null)
     setLoading(true)
+    setMessage(null)
 
-    const { error: authError } = await supabaseClient.auth.signInWithPassword({
+    const { error } = await supabaseClient.auth.signInWithPassword({
       email,
       password,
     })
+
     setLoading(false)
 
-    if (authError) {
-      const msg = authError.message.includes('Invalid login credentials')
-        ? 'E-mail ou senha incorretos.'
-        : authError.message
-      setError(msg)
+    if (error) {
+      setMessage(error.message)
     } else {
-      router.push('/dashboard')
+      router.push('/')  // ou outra rota após login bem-sucedido
     }
   }
 
-  const handleForgotPassword = async (e: React.MouseEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (forgotLoading || cooldown > 0) return
+    setLoading(true)
+    setMessage(null)
 
-    setError(null)
-    setFeedback(null)
-
-    if (!email) {
-      setError('Por favor, informe seu e-mail para recuperar a senha.')
-      return
-    }
-
-    setForgotLoading(true)
-  const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(
-    email,
-    { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password` }
-  )
-  setForgotLoading(false)
-
-    if (resetError) {
-      // Trata rate limit específico
-      if (resetError.message.toLowerCase().includes('rate limit')) {
-        setError(
-          'Você solicitou muitas vezes o reset de senha. Aguarde 60 seg e tente novamente.'
-        )
-        setCooldown(60)
-      } else {
-        setError(`Erro ao enviar e-mail de recuperação: ${resetError.message}`)
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(
+      email,
+      {
+        // aqui apontamos para a rota /auth/reset-password
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`
       }
+    )
+
+    setLoading(false)
+
+    if (error) {
+      setMessage(error.message)
     } else {
-      setFeedback('Se o e-mail estiver cadastrado, você receberá instruções em breve.')
-      setCooldown(60)
+      setMessage('Se um usuário com este e-mail existir, você receberá instruções para redefinição de senha.')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <form
-        onSubmit={handleLogin}
-        aria-busy={loading || forgotLoading}
-        className="bg-white p-6 rounded shadow-md w-full max-w-sm"
-      >
-        <h1 className="text-2xl font-semibold mb-4">Login de Barbeiro</h1>
+    <div style={{ maxWidth: 400, margin: '0 auto', padding: 20 }}>
+      <h1>Login</h1>
 
-        {error && (
-          <p className="text-red-500 mb-2" role="alert">
-            {error}
-          </p>
-        )}
-        {feedback && (
-          <p className="text-green-600 mb-2" role="status">
-            {feedback}
-          </p>
-        )}
-
-        <label htmlFor="email" className="block mb-2">
-          <span>Email</span>
-          <input
-            id="email"
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            className="mt-1 block w-full border rounded p-2"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
-
-        <label htmlFor="password" className="block mb-4">
-          <span>Senha</span>
-          <input
-            id="password"
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            required
-            className="mt-1 block w-full border rounded p-2"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
-
-        <button
-          type="submit"
-          disabled={loading}
-          aria-disabled={loading}
-          className={`w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded ${
-            loading ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          {loading ? 'Entrando...' : 'Entrar'}
+      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <input
+          type="email"
+          placeholder="E-mail"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Senha"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? 'Carregando...' : 'Entrar'}
         </button>
-
-        <p className="text-sm text-center mt-4">
-          <button
-            type="button"
-            onClick={handleForgotPassword}
-            disabled={forgotLoading || cooldown > 0}
-            className={`underline ${
-              forgotLoading || cooldown > 0 ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600'
-            }`}
-          >
-            {forgotLoading
-              ? 'Enviando...'
-              : cooldown > 0
-              ? `Reenviar em ${cooldown}s`
-              : 'Esqueci minha senha'}
-          </button>
-        </p>
-
-        <p className="mt-2 text-sm text-center">
-          Não tem conta?{' '}
-          <a href="/signup" className="text-blue-600 underline">
-            Cadastre-se
-          </a>
-        </p>
       </form>
+
+      <hr style={{ margin: '20px 0' }} />
+
+      <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <h2>Esqueci minha senha</h2>
+        <input
+          type="email"
+          placeholder="Digite seu e-mail para reset"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? 'Enviando...' : 'Enviar link de redefinição'}
+        </button>
+      </form>
+
+      {message && <p style={{ marginTop: 20 }}>{message}</p>}
     </div>
   )
 }
-
-export default LoginPage
