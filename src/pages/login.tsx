@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/router'
-import { supabaseClient } from '../utils/supabaseClient'
+import supabaseClient from '../lib/supabaseClient'  // ajustado para o diretório correto e default export
 
 export default function Login() {
   const router = useRouter()
@@ -26,7 +26,7 @@ export default function Login() {
     if (error) {
       setMessage(error.message)
     } else {
-      router.push('/')  // ou outra rota após login bem-sucedido
+      router.push('/')  // rota após login bem-sucedido
     }
   }
 
@@ -38,7 +38,6 @@ export default function Login() {
     const { error } = await supabaseClient.auth.resetPasswordForEmail(
       email,
       {
-        // aqui apontamos para a rota /auth/reset-password
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`
       }
     )
