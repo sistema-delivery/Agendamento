@@ -6,13 +6,13 @@ import supabaseClient from '../lib/supabaseClient'
 
 const LoginPage: React.FC = () => {
   const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState<string>('')
+  const [password, setPassword] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
-  const [forgotLoading, setForgotLoading] = useState(false)
-  const [cooldown, setCooldown] = useState(0) // segundos restantes
+  const [forgotLoading, setForgotLoading] = useState<boolean>(false)
+  const [cooldown, setCooldown] = useState<number>(0) // segundos restantes
 
   // Mensagem após confirmação de conta
   useEffect(() => {
@@ -34,6 +34,7 @@ const LoginPage: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (loading) return
+
     setError(null)
     setFeedback(null)
     setLoading(true)
@@ -42,7 +43,6 @@ const LoginPage: React.FC = () => {
       email,
       password,
     })
-
     setLoading(false)
 
     if (authError) {
@@ -58,9 +58,9 @@ const LoginPage: React.FC = () => {
   const handleForgotPassword = async (e: React.MouseEvent) => {
     e.preventDefault()
     if (forgotLoading || cooldown > 0) return
+
     setError(null)
     setFeedback(null)
-
     if (!email) {
       setError('Por favor, informe seu e-mail para recuperar a senha.')
       return
@@ -70,7 +70,7 @@ const LoginPage: React.FC = () => {
     const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(
       email,
       {
-        // REDIRECT ORIGINAL: para /reset-password
+        // restaurado para o original: sem /auth
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`
       }
     )
@@ -79,7 +79,7 @@ const LoginPage: React.FC = () => {
     if (resetError) {
       if (resetError.message.toLowerCase().includes('rate limit')) {
         setError(
-          'Você solicitou muitas vezes o reset de senha.\nAguarde 60 seg e tente novamente.'
+          'Você solicitou muitas vezes o reset de senha. Aguarde 60 seg e tente novamente.'
         )
         setCooldown(60)
       } else {
@@ -92,49 +92,90 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="login-container">
-      <h1>Login de Barbeiro</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <form
+        onSubmit={handleLogin}
+        aria-busy={loading || forgotLoading}
+        className="bg-white p-6 rounded shadow-md w-full max-w-sm"
+      >
+        <h1 className="text-2xl font-semibold mb-4">Login de Barbeiro</h1>
 
-      {error && <div className="error">{error}</div>}
-      {feedback && <div className="feedback">{feedback}</div>}
+        {error && (
+          <p className="text-red-500 mb-2" role="alert">
+            {error}
+          </p>
+        )}
+        {feedback && (
+          <p className="text-green-600 mb-2" role="status">
+            {feedback}
+          </p>
+        )}
 
-      <form onSubmit={handleLogin}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button type="submit" disabled={loading}>
+        <label htmlFor="email" className="block mb-2">
+          <span>Email</span>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            autoComplete="email"
+            required
+            className="mt-1 block w-full border rounded p-2"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+
+        <label htmlFor="password" className="block mb-4">
+          <span>Senha</span>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            required
+            className="mt-1 block w-full border rounded p-2"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+
+        <button
+          type="submit"
+          disabled={loading}
+          aria-disabled={loading}
+          className={`w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded ${
+            loading ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
+
+        <p className="text-sm text-center mt-4">
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            disabled={forgotLoading || cooldown > 0}
+            className={`underline ${
+              forgotLoading || cooldown > 0
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-blue-600'
+            }`}
+          >
+            {forgotLoading
+              ? 'Enviando...'
+              : cooldown > 0
+              ? `Reenviar em ${cooldown}s`
+              : 'Esqueci minha senha'}
+          </button>
+        </p>
+
+        <p className="mt-2 text-sm text-center">
+          Não tem conta?{' '}
+          <a href="/signup" className="text-blue-600 underline">
+            Cadastre-se
+          </a>
+        </p>
       </form>
-
-      <button
-        onClick={handleForgotPassword}
-        disabled={forgotLoading || cooldown > 0}
-        className={`underline ${
-          forgotLoading || cooldown > 0
-            ? 'text-gray-400 cursor-not-allowed'
-            : 'text-blue-600'
-        }`}
-      >
-        {forgotLoading
-          ? 'Enviando...'
-          : cooldown > 0
-          ? `Reenviar em ${cooldown}s`
-          : 'Esqueci minha senha'}
-      </button>
-
-      <p>
-        Não tem conta? <a href="/signup">Cadastre-se</a>
-      </p>
     </div>
   )
 }
